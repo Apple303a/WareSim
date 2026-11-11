@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Operations | WareSim{% endblock %}
+{% block content %}
+<h1>Warehouse Operations</h1>
+<p class="text-muted">OS equivalent: disk I/O requests and disk scheduling.</p>
+<form id="operation-form" class="row g-3">
+  <div class="col-md-4"><label class="form-label" for="operation-shipment">Shipment ID</label><input class="form-control" id="operation-shipment" name="shipment_id" required></div>
+  <div class="col-md-4"><label class="form-label" for="operation-type">Operation</label>
+    <select class="form-select" id="operation-type" name="operation"><option>READ</option><option>WRITE</option></select>
+  </div>
+  <div class="col-md-4"><label class="form-label" for="scheduling-algorithm">Scheduling algorithm</label>
+    <select class="form-select" id="scheduling-algorithm" name="algorithm">
+      <option value="fcfs">FCFS</option><option value="sstf">SSTF</option><option value="scan">SCAN</option><option value="cscan">C-SCAN</option><option value="look">LOOK</option><option value="clook">C-LOOK</option>
+    </select>
+  </div>
+  <div class="col-md-4"><label class="form-label" for="worker-position">Initial worker position</label><input class="form-control" id="worker-position" name="worker_position" type="number" min="0" value="0"></div>
+  <div class="col-12"><button class="btn btn-primary" type="submit">Schedule operation</button></div>
+</form>
+<div id="operation-result" class="mt-4" aria-live="polite"></div>
+{% endblock %}

@@ -1,0 +1,5 @@
+.warehouse-map, .chart-placeholder {
+  min-height: 150px; padding: 1.25rem; border: 1px dashed #9aa7b2;
+  border-radius: .5rem; color: #64748b; background: #f8fafc;
+}
+.metric-placeholder { color: #64748b; margin-bottom: 0; }

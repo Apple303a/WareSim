@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Shipments | WareSim{% endblock %}
+{% block content %}
+<h1>Shipments</h1>
+<p class="text-muted">OS equivalent: file creation, metadata and block allocation.</p>
+<form id="shipment-form" class="row g-3">
+  <div class="col-md-3"><label class="form-label" for="shipment-id">Shipment ID</label><input class="form-control" id="shipment-id" name="shipment_id" required></div>
+  <div class="col-md-3"><label class="form-label" for="shipment-name">Name</label><input class="form-control" id="shipment-name" name="name" required></div>
+  <div class="col-md-3"><label class="form-label" for="shipment-owner">Owner</label><input class="form-control" id="shipment-owner" name="owner" required></div>
+  <div class="col-md-3"><label class="form-label" for="shipment-size">Size (units)</label><input class="form-control" id="shipment-size" name="size" type="number" min="1" required></div>
+  <div class="col-md-4"><label class="form-label" for="allocation-algorithm">Allocation method</label>
+    <select class="form-select" id="allocation-algorithm" name="algorithm">
+      <option value="contiguous">Contiguous</option><option value="linked">Linked</option><option value="indexed">Indexed</option>
+    </select>
+  </div>
+  <div class="col-12"><button class="btn btn-primary" type="submit">Create shipment</button></div>
+</form>
+<div id="shipment-result" class="mt-4" aria-live="polite"></div>
+{% endblock %}

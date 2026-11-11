@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | WareSim{% endblock %}
+{% block content %}
+<h1>Warehouse Dashboard</h1>
+<p class="text-muted">OS concepts: file allocation, free-space management and disk I/O scheduling.</p>
+<div class="row g-3">
+  <div class="col-md-4"><div class="card card-body"><h5>Storage utilization</h5><p class="metric-placeholder">Connect storage engine</p></div></div>
+  <div class="col-md-4"><div class="card card-body"><h5>Total worker movement</h5><p class="metric-placeholder">Connect scheduler</p></div></div>
+  <div class="col-md-4"><div class="card card-body"><h5>Completed requests</h5><p class="metric-placeholder">Connect execution</p></div></div>
+</div>
+<section class="mt-4">
+  <h2 class="h4">Warehouse map</h2>
+  <div id="warehouse-map" class="warehouse-map">Warehouse positions will be rendered here.</div>
+</section>
+<section class="mt-4">
+  <h2 class="h4">Algorithm comparison</h2>
+  <div id="comparison-chart" class="chart-placeholder">Charts will be added here.</div>
+</section>
+{% endblock %}
