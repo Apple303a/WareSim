@@ -30,20 +30,20 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
-          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          workload_identity_provider: projects/255733592751/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-deployer@waresim.iam.gserviceaccount.com
 
       - name: Set up Google Cloud CLI
         uses: google-github-actions/setup-gcloud@v2
         with:
-          project_id: ${{ vars.GCP_PROJECT_ID }}
+          project_id: waresim
 
       - name: Deploy to Cloud Run
         run: >-
           gcloud run deploy waresim
           --source .
-          --project "${{ vars.GCP_PROJECT_ID }}"
-          --region "${{ vars.GCP_REGION }}"
+          --project waresim
+          --region asia-south1
           --allow-unauthenticated
           --concurrency 1
           --max 1

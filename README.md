@@ -65,16 +65,14 @@ One-time GCP setup (PowerShell with the Google Cloud SDK; project ID
    gcloud.cmd iam service-accounts add-iam-policy-binding $DEPLOYER --project=waresim --role="roles/iam.workloadIdentityUser" --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/attribute.repository/Apple303a/WareSim" --condition=None
    ```
 
-4. In the GitHub repository, open **Settings → Secrets and variables → Actions
-   → Variables** and add these repository variables:
-   - `GCP_PROJECT_ID`: `waresim`
-   - `GCP_REGION`: `asia-south1`
-   - `GCP_DEPLOY_SERVICE_ACCOUNT`: `github-deployer@waresim.iam.gserviceaccount.com`
-   - `GCP_WIF_PROVIDER`: `projects/255733592751/locations/global/workloadIdentityPools/github-pool/providers/github-provider`
+4. No GitHub secrets or repository variables are needed: the workflow uses
+   the public GCP provider and service-account resource names directly, while
+   GitHub receives short-lived credentials through Workload Identity
+   Federation.
 
-After those variables are set, commit and push to `main`. GitHub Actions runs
-the test suite and deploys the commit to Cloud Run. A deployment can also be
-started once manually to publish the first URL:
+Commit and push the workflow to `main`. GitHub Actions runs the test suite and
+deploys the commit to Cloud Run. A deployment can also be started once
+manually to publish the first URL:
 
 ```powershell
 gcloud.cmd run deploy waresim --source . --project=waresim --region=asia-south1 --allow-unauthenticated --concurrency=1 --max=1 --memory=512Mi --cpu=1 --timeout=300
