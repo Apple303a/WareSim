@@ -62,9 +62,8 @@ One-time GCP setup (PowerShell with the Google Cloud SDK; project ID
    gcloud.cmd projects add-iam-policy-binding waresim --member="serviceAccount:$DEPLOYER" --role="roles/cloudbuild.builds.editor" --condition=None
    gcloud.cmd projects add-iam-policy-binding waresim --member="serviceAccount:$DEPLOYER" --role="roles/artifactregistry.writer" --condition=None
    gcloud.cmd projects add-iam-policy-binding waresim --member="serviceAccount:$DEPLOYER" --role="roles/iam.serviceAccountUser" --condition=None
+   gcloud.cmd projects add-iam-policy-binding waresim --member="serviceAccount:$DEPLOYER" --role="roles/storage.admin" --condition=None
    gcloud.cmd iam service-accounts add-iam-policy-binding $DEPLOYER --project=waresim --role="roles/iam.workloadIdentityUser" --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/attribute.repository/Apple303a/WareSim" --condition=None
-   gcloud.cmd storage buckets add-iam-policy-binding gs://run-sources-waresim-asia-south1 --member="serviceAccount:$DEPLOYER" --role="roles/storage.legacyBucketReader"
-   gcloud.cmd storage buckets add-iam-policy-binding gs://run-sources-waresim-asia-south1 --member="serviceAccount:$DEPLOYER" --role="roles/storage.objectAdmin"
    ```
 
 4. No GitHub secrets or repository variables are needed: the workflow uses
