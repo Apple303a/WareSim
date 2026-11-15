@@ -27,6 +27,66 @@ Open `http://127.0.0.1:5000`.
 Using the virtual environment's Python directly avoids PowerShell execution
 policy restrictions on `Activate.ps1`.
 
+## Host on Google Cloud Run
+
+The GitHub Actions workflow at `.github/workflows/deploy.yml` runs tests and
+deploys to Cloud Run on every push to `main`. Local edits are not deployed
+until they are committed and pushed to GitHub. No Docker installation is
+needed locally; Cloud Run builds the source using the included `Dockerfile`.
+
+One-time GCP setup (PowerShell with the Google Cloud SDK; project ID
+`waresim`, region `asia-south1`):
+
+1. Enable the Run, Cloud Build, Artifact Registry, and IAM Credentials APIs:
+
+   ```powershell
+   gcloud.cmd services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com --project=waresim
+   ```
+
+2. Create a GitHub Actions Workload Identity Federation provider. Restrict it
+   to this repository's `main` branch:
+
+   ```powershell
+   $PROJECT_NUMBER = gcloud.cmd projects describe waresim --format="value(projectNumber)"
+   gcloud.cmd iam workload-identity-pools create github-pool --project=waresim --location=global --display-name="GitHub Actions"
+   gcloud.cmd iam workload-identity-pools providers create-oidc github-provider --project=waresim --location=global --workload-identity-pool=github-pool --display-name="WareSim GitHub Actions" --issuer-uri="https://token.actions.githubusercontent.com" --attribute-mapping='google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref' --attribute-condition='assertion.repository == "Apple303a/WareSim" && assertion.ref == "refs/heads/main"'
+   ```
+
+3. Create a deployment service account and grant it Cloud Run deployment and
+   source-build permissions:
+
+   ```powershell
+   gcloud.cmd iam service-accounts create github-deployer --project=waresim --display-name="GitHub Actions deployer"
+   $DEPLOYER = "github-deployer@waresim.iam.gserviceaccount.com"
+   gcloud.cmd projects add-iam-policy-binding waresim --member="serviceAccount:$DEPLOYER" --role="roles/run.admin" --condition=None
+   gcloud.cmd projects add-iam-policy-binding waresim --member="serviceAccount:$DEPLOYER" --role="roles/cloudbuild.builds.editor" --condition=None
+   gcloud.cmd projects add-iam-policy-binding waresim --member="serviceAccount:$DEPLOYER" --role="roles/artifactregistry.writer" --condition=None
+   gcloud.cmd projects add-iam-policy-binding waresim --member="serviceAccount:$DEPLOYER" --role="roles/iam.serviceAccountUser" --condition=None
+   gcloud.cmd iam service-accounts add-iam-policy-binding $DEPLOYER --project=waresim --role="roles/iam.workloadIdentityUser" --member="principalSet://iam.googleapis.com/projects/$PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/attribute.repository/Apple303a/WareSim" --condition=None
+   ```
+
+4. In the GitHub repository, open **Settings → Secrets and variables → Actions
+   → Variables** and add these repository variables:
+   - `GCP_PROJECT_ID`: `waresim`
+   - `GCP_REGION`: `asia-south1`
+   - `GCP_DEPLOY_SERVICE_ACCOUNT`: `github-deployer@waresim.iam.gserviceaccount.com`
+   - `GCP_WIF_PROVIDER`: `projects/255733592751/locations/global/workloadIdentityPools/github-pool/providers/github-provider`
+
+After those variables are set, commit and push to `main`. GitHub Actions runs
+the test suite and deploys the commit to Cloud Run. A deployment can also be
+started once manually to publish the first URL:
+
+```powershell
+gcloud.cmd run deploy waresim --source . --project=waresim --region=asia-south1 --allow-unauthenticated --concurrency=1 --max=1 --memory=512Mi --cpu=1 --timeout=300
+```
+
+The workflow uses short-lived federated credentials rather than a stored
+service-account key. The Cloud Run service is limited to one instance and one
+concurrent request because WareSim keeps its state in memory. State is
+temporary and can reset when the instance restarts or scales to zero. The
+public service has no login, so anyone with its URL can change the shared demo
+state. Cloud Run and build resources may incur charges.
+
 ## Try manual storage and operations
 
 1. Open **Shipments**, choose one warehouse allocation model (contiguous,
