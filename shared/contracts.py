@@ -4,7 +4,7 @@ Keep field names and meanings stable. Discuss changes with all team members
 before changing these contracts.
 """
 
-from typing import Any, TypedDict
+from typing import Any, Optional, TypedDict
 
 
 class ShipmentInput(TypedDict):
@@ -24,7 +24,7 @@ class AllocationRecord(TypedDict):
     block_id: str
     box_id: int
     position: int
-    next_box: int | None
+    next_box: Optional[int]
 
 
 class OperationRequest(TypedDict):
@@ -33,6 +33,7 @@ class OperationRequest(TypedDict):
     block_id: str
     operation: str  # READ or WRITE
     position: int
+    transfer_size: int
     arrival_time: float
     priority: int
 
@@ -44,10 +45,15 @@ class OperationRequest(TypedDict):
 #   "execution_order": list[str],  # request IDs
 #   "movement_path": list[int],    # includes initial position
 #   "total_movement": int,
+#   "execution_timeline": list[dict],
 #   "metrics": {
 #       "average_waiting_time": float,
 #       "average_response_time": float,
 #       "average_turnaround_time": float,
-#       "throughput": float
+#       "throughput": float,
+#       "average_read_latency": float,
+#       "average_write_latency": float,
+#       "read_throughput_units_per_time": float,
+#       "write_throughput_units_per_time": float
 #   }
 # }

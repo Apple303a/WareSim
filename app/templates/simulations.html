@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Simulation Lab | WareSim{% endblock %}
+{% block content %}
+<h1>Simulation Lab</h1>
+<p>Compare how storage allocation and disk scheduling affect the same repeatable workload.</p>
+<div class="alert alert-info">
+  <strong>These are simulated time units, not seconds.</strong>
+  Moving one box costs 1 unit; each block request has 1 unit fixed latency; transferring one
+  100-unit block costs 1 more unit at the default rate. Shipment operations arrive
+  at different times during the first 100 simulated units.
+</div>
+<details class="mb-3">
+  <summary>What is an I/O operation?</summary>
+  <p class="mt-2 mb-0">One operation is a shipment-level READ or WRITE. It creates one disk request
+    for every block in that shipment, so a 250-unit shipment creates three requests.
+    Arrival time is when an operation joins the simulated request queue; it is not
+    real elapsed time.</p>
+</details>
+<form id="simulation-form" class="d-flex flex-wrap align-items-center gap-2">
+  <input id="demo-seed" name="seed" type="hidden" value="{{ next_seed }}">
+  <button class="btn btn-primary" type="submit">Run new demo (seed {{ next_seed }})</button>
+  <button class="btn btn-outline-primary" id="run-all-simulations" type="button"
+          {% if not workload %}disabled{% endif %}>Run all 18 for this workload</button>
+  <span class="text-muted small">A new demo changes the seed and reruns all 18 combinations.</span>
+</form>
+<div id="simulation-message" class="mt-3" aria-live="polite" role="status"></div>
+<div id="workload-summary" class="mt-3">
+  {% if workload %}
+  <div class="alert alert-success">
+    Seed {{ workload.config.seed }}: {{ workload.shipments | length }} initial shipments,
+    {{ workload.deleted_shipment_ids | length }} deleted,
+    {{ workload.shipments | length - workload.deleted_shipment_ids | length }} retained,
+    {{ workload.replacement_shipments | length }} replacements;
+    {{ workload.operations | length }} shipment I/O operations expand to
+    {{ workload.block_request_count }} block requests.
+  </div>
+  {% endif %}
+</div>
+<section id="workload-details" class="mb-4" {% if not workload %}hidden{% endif %}>
+  <h2 class="h4">Shipment lifecycle</h2>
+  <p class="text-muted">This is the planned event order. Each cell starts empty; an allocation failure stops that cell before the remaining replacements and I/O.</p>
+  <div id="lifecycle-log"></div>
+  <details class="mt-3">
+    <summary>I/O workload (<span id="operation-count-label">0</span> shipment operations)</summary>
+    <div id="operation-log" class="table-responsive mt-2"></div>
+  </details>
+</section>
+
+<section class="mb-4" aria-labelledby="comparison-heading">
+  <h2 class="h4" id="comparison-heading">Comparison</h2>
+  <div class="row align-items-end g-3 mb-3">
+    <div class="col-md-5">
+      <label class="form-label" for="comparison-metric">Declare winner by</label>
+      <select class="form-select" id="comparison-metric">
+        <option value="turnaround">Average turnaround (lower is better)</option>
+        <option value="movement">Total head movement (lower is better)</option>
+        <option value="throughput">Request throughput (higher is better)</option>
+        <option value="external">External fragmentation (lower is better)</option>
+      </select>
+    </div>
+    <div class="col-md-7">
+      <p class="small text-muted mb-0">There is no universal winner: the result depends on the metric.
+        Rankings use successful allocation/scheduling runs only; allocation failures are shown separately.</p>
+    </div>
+  </div>
+  <p id="comparison-status" class="small text-muted">No results yet.</p>
+  <div id="winner-summary" class="row g-3 mb-3" aria-live="polite"></div>
+  <div id="comparison-chart" class="comparison-chart" role="img"
+       aria-label="Bar chart comparing completed simulation results"></div>
+</section>
+
+<section>
+  <h2 class="h4">Allocation × scheduling</h2>
+  <p>Run a single pair or all 18. Results below use the same workload and seed.</p>
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle simulation-matrix">
+      <thead><tr><th>Allocation \ Scheduler</th>
+        {% for scheduler in scheduling_algorithms %}<th>{{ scheduler | upper }}</th>{% endfor %}
+      </tr></thead>
+      <tbody>
+      {% for allocation in allocation_algorithms %}
+        <tr><th>{{ allocation | title }}</th>
+        {% for scheduler in scheduling_algorithms %}
+          {% set key = allocation ~ ":" ~ scheduler %}
+          {% set cell = simulation_results.get(key) %}
+          <td>
+            <button type="button" class="btn btn-sm btn-outline-primary run-simulation-cell"
+                    data-allocation="{{ allocation }}" data-scheduler="{{ scheduler }}"
+                    data-workload-id="{{ workload_id or '' }}"
+                    {% if not workload %}disabled{% endif %}>
+              {% if cell and not cell.allocation_success %}Allocation failed
+              {% elif cell %}Run again{% else %}Simulate{% endif %}
+            </button>
+            <div class="matrix-cell-result small mt-1">
+              {% if cell and cell.allocation_success %}
+              Turnaround {{ cell.schedule.metrics.average_turnaround_time }}; movement {{ cell.schedule.total_movement }}
+              {% elif cell %}Allocation failed
+              {% endif %}
+            </div>
+          </td>
+        {% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+<section id="simulation-result" class="mt-4" aria-live="polite"></section>
+<script id="initial-workload" type="application/json">{{ workload | tojson }}</script>
+<script id="initial-simulation-results" type="application/json">{{ simulation_results | tojson }}</script>
+{% endblock %}

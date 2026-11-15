@@ -2,19 +2,37 @@
 {% block title %}Operations | WareSim{% endblock %}
 {% block content %}
 <h1>Warehouse Operations</h1>
-<p class="text-muted">OS equivalent: disk I/O requests and disk scheduling.</p>
+<p>Schedule one READ or WRITE request for each block in a shipment. This simulates request scheduling; it does not change shipment contents.</p>
+{% if not has_shipments %}
+<div class="alert alert-info">Create a shipment first to schedule warehouse operations.</div>
+{% endif %}
 <form id="operation-form" class="row g-3">
-  <div class="col-md-4"><label class="form-label" for="operation-shipment">Shipment ID</label><input class="form-control" id="operation-shipment" name="shipment_id" required></div>
+  <div class="col-md-4"><label class="form-label" for="operation-shipment">Shipment</label>
+    <select class="form-select" id="operation-shipment" name="shipment_id" required {% if not has_shipments %}disabled{% endif %}>
+      {% for shipment in shipments %}
+      <option value="{{ shipment.shipment_id }}">{{ shipment.shipment_id }} — {{ shipment.name }} ({{ shipment.size }} units)</option>
+      {% endfor %}
+    </select>
+  </div>
   <div class="col-md-4"><label class="form-label" for="operation-type">Operation</label>
-    <select class="form-select" id="operation-type" name="operation"><option>READ</option><option>WRITE</option></select>
+    <select class="form-select" id="operation-type" name="operation" {% if not has_shipments %}disabled{% endif %}><option>READ</option><option>WRITE</option></select>
   </div>
   <div class="col-md-4"><label class="form-label" for="scheduling-algorithm">Scheduling algorithm</label>
-    <select class="form-select" id="scheduling-algorithm" name="algorithm">
+    <select class="form-select" id="scheduling-algorithm" name="algorithm" {% if not has_shipments %}disabled{% endif %}>
+      <option value="compare">Compare all algorithms</option>
       <option value="fcfs">FCFS</option><option value="sstf">SSTF</option><option value="scan">SCAN</option><option value="cscan">C-SCAN</option><option value="look">LOOK</option><option value="clook">C-LOOK</option>
     </select>
   </div>
-  <div class="col-md-4"><label class="form-label" for="worker-position">Initial worker position</label><input class="form-control" id="worker-position" name="worker_position" type="number" min="0" value="0"></div>
-  <div class="col-12"><button class="btn btn-primary" type="submit">Schedule operation</button></div>
+  <div class="col-md-4"><label class="form-label" for="worker-position">Initial worker position</label><input class="form-control" id="worker-position" name="worker_position" type="number" min="0" max="99" value="0" required {% if not has_shipments %}disabled{% endif %}></div>
+  <div class="col-md-4"><label class="form-label" for="worker-direction">Initial direction</label>
+    <select class="form-select" id="worker-direction" name="direction" {% if not has_shipments %}disabled{% endif %}><option value="up">Up</option><option value="down">Down</option></select>
+  </div>
+  <div class="col-md-4"><label class="form-label" for="arrival-time">Request arrival time</label><input class="form-control" id="arrival-time" name="arrival_time" type="number" min="0" step="0.1" value="0" required {% if not has_shipments %}disabled{% endif %}></div>
+  <div class="col-md-3"><label class="form-label" for="seek-time">Seek time / position</label><input class="form-control" id="seek-time" name="seek_time_per_position" type="number" min="0.001" step="0.1" value="1" required {% if not has_shipments %}disabled{% endif %}></div>
+  <div class="col-md-3"><label class="form-label" for="fixed-latency">Fixed I/O latency</label><input class="form-control" id="fixed-latency" name="fixed_io_latency" type="number" min="0.001" step="0.1" value="1" required {% if not has_shipments %}disabled{% endif %}></div>
+  <div class="col-md-3"><label class="form-label" for="read-rate">Read transfer rate (units / time)</label><input class="form-control" id="read-rate" name="read_transfer_rate" type="number" min="0.001" step="1" value="100" required {% if not has_shipments %}disabled{% endif %}></div>
+  <div class="col-md-3"><label class="form-label" for="write-rate">Write transfer rate (units / time)</label><input class="form-control" id="write-rate" name="write_transfer_rate" type="number" min="0.001" step="1" value="100" required {% if not has_shipments %}disabled{% endif %}></div>
+  <div class="col-12"><button class="btn btn-primary" type="submit" {% if not has_shipments %}disabled{% endif %}>Run schedule</button></div>
 </form>
-<div id="operation-result" class="mt-4" aria-live="polite"></div>
+<div id="operation-result" class="mt-4" aria-live="polite" role="status"></div>
 {% endblock %}

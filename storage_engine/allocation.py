@@ -1,4 +1,5 @@
 """Contiguous, linked and indexed allocation."""
+import copy
 import math
 
 def allocate_blocks(blocks: dict, inventory: dict, algorithm: str) -> dict:
@@ -110,6 +111,7 @@ def allocate_blocks(blocks: dict, inventory: dict, algorithm: str) -> dict:
             "shipment_id": shipment_id,
             "allocation_algorithm": "indexed",
             "index_box": index_pos,
+            "index_entries": data_indices.copy(),
             "allocated_blocks": allocated_blocks
         }
         return {"allocation_metadata": metadata, "inventory": inventory}
@@ -136,12 +138,26 @@ def deallocate_shipment(shipment_id: str, allocation_metadata: dict, inventory: 
 
 
 def resize_shipment(shipment_id: str, new_size: int, block_size: int, allocation_metadata: dict, inventory: dict) -> dict:
-    """Preserve existing blocks where possible; allocate/free only the difference."""
+    """Resize a shipment, leaving its original allocation intact if growth fails."""
+    if not isinstance(new_size, int) or isinstance(new_size, bool) or new_size <= 0:
+        raise ValueError("Shipment size must be a positive integer.")
+    if not isinstance(block_size, int) or isinstance(block_size, bool) or block_size <= 0:
+        raise ValueError("Block size must be a positive integer.")
+
     allocated_blocks = allocation_metadata.get("allocated_blocks", [])
     current_block_count = len(allocated_blocks)
     new_block_count = math.ceil(new_size / block_size)
 
+    def update_used_sizes(blocks: list[dict]) -> None:
+        remaining_size = new_size
+        for block in blocks:
+            used_size = min(remaining_size, block_size)
+            block["used_size"] = used_size
+            inventory["boxes"][block["position"]]["used_size"] = used_size
+            remaining_size -= used_size
+
     if new_block_count == current_block_count:
+        update_used_sizes(allocated_blocks)
         return {"allocation_metadata": allocation_metadata, "inventory": inventory}
 
     algorithm = allocation_metadata.get("allocation_algorithm", "linked")
@@ -160,10 +176,29 @@ def resize_shipment(shipment_id: str, new_size: int, block_size: int, allocation
             box_list[pos]["used_size"] = 0
 
         allocation_metadata["allocated_blocks"] = blocks_to_keep
+        if algorithm == "linked":
+            for index, block in enumerate(blocks_to_keep):
+                block["next_box"] = (
+                    blocks_to_keep[index + 1]["position"]
+                    if index + 1 < len(blocks_to_keep)
+                    else None
+                )
+        elif algorithm == "indexed":
+            allocation_metadata["index_entries"] = [
+                block["position"] for block in blocks_to_keep
+            ]
+        update_used_sizes(blocks_to_keep)
         return {"allocation_metadata": allocation_metadata, "inventory": inventory}
 
-    # If growing: re-allocate cleanly with the new size
-    deallocate_shipment(shipment_id, allocation_metadata, inventory)
+    # Allocate against a working copy so a failed growth cannot lose the old shipment.
+    working_inventory = copy.deepcopy(inventory)
+    deallocate_shipment(shipment_id, allocation_metadata, working_inventory)
     from .block_generator import generate_blocks
     new_blocks = generate_blocks({"shipment_id": shipment_id, "size": new_size}, block_size)
-    return allocate_blocks(new_blocks, inventory, algorithm)
+    result = allocate_blocks(new_blocks, working_inventory, algorithm)
+
+    for existing_box, resized_box in zip(inventory["boxes"], working_inventory["boxes"]):
+        existing_box.clear()
+        existing_box.update(resized_box)
+
+    return {"allocation_metadata": result["allocation_metadata"], "inventory": inventory}
